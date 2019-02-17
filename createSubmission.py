@@ -8,12 +8,13 @@ import matplotlib.pyplot as plt
 import glob
 import os
 from keras.preprocessing.image import ImageDataGenerator
+from keras.applications.imagenet_utils import preprocess_input
 
-test_datagen = ImageDataGenerator(rescale=1./255)
+test_datagen = ImageDataGenerator(rescale=1./255, preprocessing_function=preprocess_input)
 
 test_generator = test_datagen.flow_from_directory(
         "./data/test",
-        target_size=(120, 120),
+        target_size=(100, 100),
         color_mode="rgb",
         shuffle = False,
         batch_size=1)
@@ -40,7 +41,7 @@ for index, row in df.iterrows():
 print(getClassNameByNumber)
 print(getClassNumberByClassName)
 
-model = load_model("./saves/model-135-0.4938.h5")
+model = load_model("./saves/model-67-0.8666.h5")
 preds = model.predict_generator(test_generator, steps=nb_samples)
 submission=[]
 
@@ -48,7 +49,8 @@ for i in range(nb_samples):
     file=filenames[i]
     last=-1
     classes=[]
-    for j in range(5):
+    classes.append("new_whale")
+    for j in range(4):
         classId=np.argmax(preds[i],axis=0)
         classes.append(getClassNameByNumber.get(classId))
         preds[i][classId]=0
