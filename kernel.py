@@ -21,6 +21,7 @@ from keras.callbacks import ReduceLROnPlateau
 from skimage.io import imread
 from keras import backend as K
 from skimage.transform import resize
+from keras.applications.imagenet_utils import preprocess_input
 
 np.set_printoptions(threshold=np.inf)
 channels=3
@@ -71,81 +72,73 @@ def plotImgs(x, y):
         plt.imshow(image.astype('uint8'))
     plt.show()
 
-def image_generator(getClassByFile, batch_size=64):
-    ids=[]
-    for k, v in getClassByFile.items():
-        if ignore_new_whale and v!="new_whale" or not ignore_new_whale:
-            ids.append(k)
+
+files=[]
+for k, v in getClassByFile.items():
+    if ignore_new_whale and v!="new_whale" or not ignore_new_whale:
+        files.append(k)
+x = np.zeros((len(files), img_size, img_size, channels))
+y = []
 
 
-    while True:
-        batch_paths = np.random.choice(ids, batch_size)
-        batch_input = np.zeros((batch_size, img_size, img_size, channels))
-        batch_output = []
+c=0
+for file in files:
+    y_single = getClassNumberByClassName[getClassByFile[file]]
+    if c%500==0:
+        print("processing image " + str(c))
+    if getClassByFile[file]!="new_whale" or not ignore_new_whale:
+        x_single = imread(imgPath + file)
+        x_single = resize(x_single, (img_size, img_size))
+        x_single = preprocess_input(x_single)
+        if len(x_single.shape)==2:
+            x_single=np.stack((x_single,) * 3, axis=-1)
 
-        c=0
-        for file in batch_paths:
-            y = getClassNumberByClassName[getClassByFile[file]]
-            if getClassByFile[file]!="new_whale" or not ignore_new_whale:
-                x = imread(imgPath + file)
-                x = resize(x, (img_size, img_size))
-                x = resize(x, (img_size, img_size))
-                if len(x.shape)==2:
-                    x=np.stack((x,) * 3, axis=-1)
+        x[c]=x_single
+        y.append(y_single)
+        c+=1
 
-                batch_input[c]=x
-                batch_output.append(y)
-                c+=1
-
-        batch_x = batch_input
-        batch_y = to_categorical(batch_output, num_classes=num_classes)
-        #plotImgs(batch_x, batch_y)
-        yield (batch_x, batch_y)
+y = to_categorical(y, num_classes=num_classes)
+plotImgs(x[:20], y[:20])
 
 model = Sequential()
-model.add(Conv2D(32, (7, 7), strides = (1, 1), name = 'conv0', input_shape = (img_size, img_size, 3)))
-
-model.add(BatchNormalization(axis = 3, name = 'bn0'))
-model.add(Activation('relu'))
-
-model.add(MaxPooling2D((2, 2), name='max_pool'))
-model.add(Conv2D(64, (3, 3), strides = (1,1), name="conv1"))
-model.add(Activation('relu'))
-model.add(AveragePooling2D((3, 3), name='avg_pool'))
-
-model.add(Flatten())
-model.add(Dense(500, activation="relu", name='rl'))
-model.add(Dropout(0.8))
-model.add(Dense(num_classes, activation='softmax', name='sm'))
-# model.add(Conv2D(128, (3, 3), input_shape=(img_size, img_size, channels),  padding='same'))
-# model.add(BatchNormalization(axis=-1))
+# model.add(Conv2D(32, (7, 7), strides = (1, 1), name = 'conv0', input_shape = (img_size, img_size, 3)))
+#
+# model.add(BatchNormalization(axis = 3, name = 'bn0'))
 # model.add(Activation('relu'))
-# # model.add(MaxPooling2D((2, 2)))
-# model.add(Conv2D(256, (3, 3), strides=(2,2), padding='same', activation='relu'))
-# model.add(BatchNormalization(axis=-1))
+#
+# model.add(MaxPooling2D((2, 2), name='max_pool'))
+# model.add(Conv2D(64, (3, 3), strides = (1,1), name="conv1"))
 # model.add(Activation('relu'))
-# # model.add(MaxPooling2D((2, 2)))
-# model.add(Conv2D(256, (3, 3), strides=(2,2), padding='same', activation='relu'))
-# model.add(BatchNormalization(axis=-1))
-# model.add(Activation('relu'))
-# model.add(MaxPooling2D((2, 2)))
+# model.add(AveragePooling2D((3, 3), name='avg_pool'))
+#
 # model.add(Flatten())
-# model.add(Dense(500, activation='relu'))
-# model.add(Dropout(0.5))
-# model.add(Dense(500, activation='relu'))
-# model.add(Dropout(0.5))
-# model.add(Dense(num_classes, activation='softmax'))
+# model.add(Dense(500, activation="relu", name='rl'))
+# model.add(Dropout(0.8))
+# model.add(Dense(num_classes, activation='softmax', name='sm'))
+model.add(Conv2D(128, (3, 3), input_shape=(img_size, img_size, channels),  padding='same'))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+# model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(256, (3, 3), strides=(2,2), padding='same', activation='relu'))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+# model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(256, (3, 3), strides=(2,2), padding='same', activation='relu'))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Flatten())
+model.add(Dense(500, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(500, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
 print(model.summary())
-checkpoint = ModelCheckpoint('./saves/model-{epoch:02d}-{val_acc:.4f}.h5', verbose=1, monitor='val_acc',save_best_only=True, mode='auto')
+checkpoint = ModelCheckpoint('./saves/model-{epoch:02d}-{acc:.4f}.h5', verbose=1, monitor='acc',save_best_only=True, mode='auto')
 
 model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 
-model.fit_generator(
-        image_generator(getClassByFile, batch_size=batch_size),
-        steps_per_epoch=3000 // batch_size,
-        epochs=300,
-        validation_data=image_generator(getClassByFile, batch_size=10),
-        validation_steps=1000 // batch_size,
-        callbacks=[checkpoint])
+history = model.fit(x, y, epochs=10000, batch_size=100, verbose=1, callbacks=[checkpoint])
+
