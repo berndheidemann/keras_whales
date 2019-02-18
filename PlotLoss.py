@@ -20,7 +20,7 @@ class PlotLosses(keras.callbacks.Callback):
     def paintPlot(self):
         plt.plot(self.x, self.acc, label="acc")
         plt.legend()
-        self.fig.savefig("acc_history.png")
+        plt.savefig("acc_history.png")
        # plt.show();
 
     def on_epoch_end(self, epoch, logs={}):

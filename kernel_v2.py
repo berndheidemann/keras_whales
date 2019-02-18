@@ -7,7 +7,6 @@ from keras.callbacks import ModelCheckpoint
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-
 from keras.preprocessing import image
 from keras.applications.imagenet_utils import preprocess_input
 from keras.layers import Input, Dense, Activation, BatchNormalization, Flatten, Conv2D
@@ -109,10 +108,6 @@ print(X.shape)
 datagen.fit(X)
 #history = model.fit(X, y, epochs=100, batch_size=100, verbose=1, callbacks=[checkpoint, PlotLosses(slowlyCutBeginning=False)])
 history=model.fit_generator(datagen.flow(X, y, batch_size=100),
-          epochs=3000, steps_per_epoch=X.shape[0]//batch_size, callbacks=[checkpoint, PlotLosses(slowlyCutBeginning=False)])
-plt.plot(history.history['acc'])
-plt.title('Model accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.show()
+          epochs=30000, steps_per_epoch=X.shape[0]//batch_size, callbacks=[checkpoint, PlotLosses(slowlyCutBeginning=False)])
+
 
